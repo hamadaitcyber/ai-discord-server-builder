@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSession, getOAuthState, clearOAuthState } from "@/lib/session";
+import { setSession, getOAuthState, clearOAuthState } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
@@ -85,13 +85,10 @@ export async function GET(req: NextRequest) {
   const user = await meResponse.json();
   const guilds = guildsResponse.ok ? await guildsResponse.json() : [];
 
-  await createSession({
-    user: {
-      id: user.id,
-      username: user.username,
-      global_name: user.global_name ?? null,
-      avatar: user.avatar ?? null,
-    },
+  await setSession({
+    id: user.id,
+    username: user.username,
+    avatar: user.avatar ?? undefined,
     guilds: guilds.map((g: any) => ({
       id: g.id,
       name: g.name,
