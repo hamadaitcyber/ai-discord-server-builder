@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { setSession, getOAuthState, clearOAuthState } from "@/lib/session";
+import { createSessionToken, getOAuthState, clearOAuthState } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
   const user = await meResponse.json();
   const guilds = guildsResponse.ok ? await guildsResponse.json() : [];
 
-  await setSession({
+  const sessionToken = await createSessionToken({
     id: user.id,
     username: user.username,
     avatar: user.avatar ?? undefined,
@@ -98,5 +98,16 @@ export async function GET(req: NextRequest) {
     })),
   });
 
-  return NextResponse.redirect(new URL("/dashboard", req.url));
+  // Set the session cookie directly on the redirect response.
+  // This makes the cookie persistence explicit on Vercel/Next.js.
+  const response = NextResponse.redirect(new URL("/dashboard", req.url));
+  response.cookies.set("db_session", sessionToken, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: true,
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+  });
+
+  return response;
 }
